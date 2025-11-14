@@ -34,7 +34,7 @@ print(f"Training data shape: {X_train.shape}")
 
 latent_dim = 100  # Size of the input noise vector
 batch_size = 128
-lr_g = 2e-4  # Learning rate for Generator
+lr_g = 3e-4  # Learning rate for Generator
 lr_d = 1e-4  # Learning rate for Discriminator
 beta1 = 0.5  # Adam optimizer beta1
 epochs = 50
@@ -195,7 +195,7 @@ g_val_and_grad_fn = nn.value_and_grad(generator, g_loss_fn)
 # --- 6. Training Loop ---
 
 num_batches = len(X_train) // batch_size
-losses = {"epoch": [], "batch": [], "d_loss": [], "g_loss": []}
+losses = {"epoch": [], "batch": [], "d_loss": [], "g_loss": [], "d_lr": [], "g_lr": []}
 
 print("Starting Training...")
 for epoch in range(epochs):
@@ -252,9 +252,11 @@ for epoch in range(epochs):
         losses["batch"].append(epoch * num_batches + i)
         losses["d_loss"].append(float(d_loss))
         losses["g_loss"].append(float(g_loss))
+        losses["d_lr"].append(float(opt_d.learning_rate))
+        losses["g_lr"].append(float(opt_g.learning_rate))
 
     tqdm.write(
-        f"Epoch {epoch+1}/{epochs} | D Loss: {float(d_loss):.4f} | G Loss: {float(g_loss):.4f}"
+        f"Epoch {epoch+1}/{epochs} | D Loss: {float(d_loss):.4f} | G Loss: {float(g_loss):.4f} | LR D: {float(opt_d.learning_rate):.6f} | LR G: {float(opt_g.learning_rate):.6f}"
     )
 
 # --- 7. Save Losses to File ---
@@ -263,27 +265,37 @@ import time
 
 time_str = time.strftime("%Y%m%d-%H%M%S")
 folder_path = f"models_{time_str}"
-
-mx.savez(
-    f"{folder_path}/dcgan_losses.npz",
-    epoch=losses["epoch"],
-    batch=losses["batch"],
-    d_loss=losses["d_loss"],
-    g_loss=losses["g_loss"],
-)
-
-# --- 8. Generate and Save Sample Images As Numpy ---
 os.makedirs(folder_path, exist_ok=True)
 
-num_samples = 16
-z_samples = mx.random.normal((num_samples, latent_dim))
-generated_images = generator(z_samples)
-mx.eval(generated_images)
-mx.savez(
-    f"{folder_path}/dcgan_generated_images.npz",
-    images=generated_images,
-)
+generator.save_weights(f"{folder_path}/dcgan_generator_weights.safetensors")
+discriminator.save_weights(f"{folder_path}/dcgan_discriminator_weights.safetensors")
 
-# --- 9. Save Weights ---
-generator.save_weights(f"{folder_path}/dcgan_generator_weights.npz")
-discriminator.save_weights(f"{folder_path}/dcgan_discriminator_weights.npz")
+try:
+    mx.eval(
+        losses["epoch"],
+        losses["batch"],
+        losses["d_loss"],
+        losses["g_loss"],
+        losses["d_lr"],
+        losses["g_lr"],
+    )
+
+    import pandas as pd
+
+    df_losses = pd.DataFrame(losses)
+    df_losses.to_csv(f"{folder_path}/dcgan_losses.csv", index=False)
+except Exception as e:
+    print(f"Could not save losses to CSV: {e}")
+
+# --- 8. Generate and Save Sample Images As Numpy ---
+try:
+    num_samples = 16
+    z_samples = mx.random.normal((num_samples, latent_dim))
+    generated_images = generator(z_samples)
+    mx.eval(generated_images)
+    mx.savez(
+        f"{folder_path}/dcgan_generated_images.npz",
+        images=generated_images,
+    )
+except Exception as e:
+    print(f"Could not generate/save sample images: {e}")
