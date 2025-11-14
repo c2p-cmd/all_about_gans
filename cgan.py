@@ -35,10 +35,18 @@ latent_dim = 100  # Size of the input noise vector
 num_classes = 10  # Number of classes in MNIST
 embedding_dim = 16  # Dimension of label embeddings
 batch_size = 128
-lr_g = 2.1e-4  # Learning rate for Generator
-lr_d = 1.5e-4  # Learning rate for Discriminator
+lr_g = optim.step_decay(
+    init=2.1e-4,
+    decay_rate=0.95,
+    step_size=10,
+)  # Learning rate for Generator
+lr_d = optim.step_decay(
+    init=1.5e-4,
+    decay_rate=0.95,
+    step_size=10,
+)  # Learning rate for Discriminator
 beta1 = 0.5  # Adam optimizer beta1
-epochs = 60  # Number of training epochs
+epochs = 75  # Number of training epochs
 
 # --- 3. Define Models ---
 mx.random.seed(44)
@@ -144,7 +152,7 @@ class Discriminator(nn.Module):
         inputs = mx.concatenate([x_features, c_embed], axis=-1)
 
         # Classify the combined vector
-        x = self.fc(inputs)
+        x = mx.sigmoid(self.fc(inputs))
         return x
 
 
@@ -169,16 +177,14 @@ def is_bn_weight(module: nn.Module, key: str, val) -> bool:
 
 def discriminator_loss(real_output, fake_output):
     """Calculates D's loss, pushing real scores to 1 and fake scores to 0."""
-    real_loss = nn.losses.binary_cross_entropy(
+    real_loss = nn.losses.hinge_loss(
         real_output,
-        mx.ones_like(real_output),  # Label smoothing for real images
-        with_logits=True,
+        mx.ones_like(real_output),
     )
 
-    fake_loss = nn.losses.binary_cross_entropy(
+    fake_loss = nn.losses.hinge_loss(
         fake_output,
         mx.zeros_like(fake_output),
-        with_logits=True,
     )
     return (real_loss + fake_loss) * 0.5
 
@@ -188,7 +194,7 @@ def generator_loss(fake_output):
     return nn.losses.binary_cross_entropy(
         fake_output,
         mx.ones_like(fake_output),
-        with_logits=True,
+        with_logits=False,  # Discriminator outputs probabilities after sigmoid
     )
 
 
@@ -245,6 +251,13 @@ num_batches = len(X_train) // batch_size
 losses = {"epoch": [], "batch": [], "d_loss": [], "g_loss": []}
 
 start_time_training = time.time()
+
+import os
+
+time_str = time.strftime("%Y%m%d-%H%M%S")
+folder_path = f"models_{time_str}"
+
+os.makedirs(folder_path, exist_ok=True)
 
 print("Starting Training...")
 for epoch in range(epochs):
@@ -309,11 +322,19 @@ for epoch in range(epochs):
         losses["epoch"].append(epoch + 1)
         losses["batch"].append(epoch * num_batches + i)
         losses["d_loss"].append(float(d_loss))
+        losses["d_lr"].append(float(opt_d.learning_rate))
         losses["g_loss"].append(float(g_loss))
+        losses["g_lr"].append(float(opt_g.learning_rate))
 
     end_time_epoch = time.time()
     tqdm.write(
-        f"Epoch {epoch+1}/{epochs} | D Loss: {float(d_loss):.4f} | G Loss: {float(g_loss):.4f} | Time: {end_time_epoch - start_time_epoch:.4f} seconds"
+        f"Epoch {epoch+1}/{epochs} | D Loss: {float(d_loss):.4f} | G Loss: {float(g_loss):.4f} | LR D: {float(opt_d.learning_rate):.6f} | LR G: {float(opt_g.learning_rate):.6f}"
+    )
+    generator.save_weights(
+        f"{folder_path}/c_dcgan_generator_epoch_{epoch+1}_weights.safetensors"
+    )
+    discriminator.save_weights(
+        f"{folder_path}/c_dcgan_discriminator_epoch_{epoch+1}_weights.safetensors"
     )
 
 end_time_training = time.time()
@@ -321,17 +342,9 @@ print(
     f"Training Complete! Time taken: {end_time_training - start_time_training:.4f} seconds"
 )
 
-# --- 7. Save Losses to File ---
-import os
-
-time_str = time.strftime("%Y%m%d-%H%M%S")
-folder_path = f"models_{time_str}"
-
-os.makedirs(folder_path, exist_ok=True)
-
 # --- 7. Save Weights ---
-generator.save_weights(f"{folder_path}/c_dcgan_generator_weights.npz")
-discriminator.save_weights(f"{folder_path}/c_dcgan_discriminator_weights.npz")
+generator.save_weights(f"{folder_path}/c_dcgan_generator_weights.safetensors")
+discriminator.save_weights(f"{folder_path}/c_dcgan_discriminator_weights.safetensors")
 
 np.savez(
     f"{folder_path}/gan_losses.npz",

@@ -5,9 +5,14 @@ description = "Learning about Generative Image Models"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "keras>=3.12.0",
     "matplotlib>=3.10.7",
     "mlx>=0.29.4",
+    "mlx-data>=0.2.0",
     "numpy>=2.3.4",
     "plotly>=6.4.0",
+    "safetensors>=0.6.2",
     "seaborn>=0.13.2",
+    "tensorflow>=2.20.0",
+    "tqdm>=4.67.1",
 ]
