@@ -30,7 +30,7 @@ def sampling(z_mean, z_log_var) -> mx.array:
 latent_dim = 12
 input_shape = (28, 28, 1)
 batch_size = 128
-epochs = 50
+epochs = 150
 
 
 class Encoder(nn.Module):
@@ -112,14 +112,14 @@ class Decoder(nn.Module):
 
 
 def reconstruction_loss(inputs, targets):
-    bce_loss = nn.losses.binary_cross_entropy(inputs, targets, reduction="none")
-    return mx.mean(mx.sum(bce_loss, axis=(1, 2, 3)))
+    # Use MSE loss with SUM reduction
+    return nn.losses.mse_loss(inputs, targets, reduction="sum")
 
 
 def kl_loss(z_mean, z_log_var):
+    # Use SUM reduction
     loss = -0.5 * (1 + z_log_var - mx.square(z_mean) - mx.exp(z_log_var))
-    loss = mx.mean(mx.sum(loss, axis=1))
-    return loss
+    return mx.sum(loss)
 
 
 class VAE(nn.Module):
@@ -136,16 +136,11 @@ class VAE(nn.Module):
         return mu, log_var, z, recon
 
 
-def vae_loss_fn(model: VAE, batch: mx.array, beta: float):
-    # Run the full model
+def vae_loss_fn(model: VAE, batch: mx.array):
     mu, log_var, _, recon = model(batch)
-
-    # Calculate the two loss components
-    rec_loss = reconstruction_loss(batch, recon)
+    rec_loss = reconstruction_loss(recon, batch)  # Note: order is (preds, targets)
     kl = kl_loss(mu, log_var)
-
-    # Return the single, combined loss
-    return rec_loss + beta * kl
+    return rec_loss + kl
 
 
 vae_model = VAE(latent_dim=latent_dim)
@@ -178,19 +173,24 @@ losses = {
     "total_loss": [],
     "lr": [],
 }
-kl_warmup_epochs = 20
-beta = 0.0
+
 optimizer = optim.Adam(
     learning_rate=optim.step_decay(
         init=1e-3,
         decay_rate=0.9,
-        step_size=num_batches * 5,
+        step_size=num_batches * 10,
     )
 )
 
+
+def train_step(model, batch):
+    loss, grads = val_and_grad_fn(model, batch)
+    optimizer.update(model, grads)
+    return loss
+
+
 print("Starting Training...")
 for epoch in range(epochs):
-    beta = min(1.0, (epoch + 1) / kl_warmup_epochs)
     for i in tqdm(range(num_batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch"):
         # Sample a batch of real images
         idx = mx.random.randint(0, len(X_train), (batch_size,))
@@ -199,15 +199,10 @@ for epoch in range(epochs):
         # Set model to training mode
         vae_model.train()
 
-        # --- This is the entire update step ---
-        # 1. Calculate loss and gradients for the *entire* VAE
-        total_loss, grads = val_and_grad_fn(vae_model, real_images, beta)
+        # update step
+        total_loss = train_step(vae_model, real_images)
 
-        # 2. Update all parameters (both enc and dec) in one go
-        optimizer.update(vae_model, grads)
-
-        # 3. Evaluate all parameters
-        mx.eval(vae_model.parameters())
+        mx.eval(total_loss, vae_model.parameters(), optimizer.state)
         # --- End of update step ---
 
         # Logging (adjust variable names)
@@ -216,7 +211,7 @@ for epoch in range(epochs):
         losses["lr"].append(float(optimizer.learning_rate))
 
     tqdm.write(
-        f"Epoch: {epoch+1}/{epochs}, Total Loss: {float(total_loss):.4f}, LR: {float(optimizer.learning_rate):.6f}, Beta: {float(beta):.6f}"
+        f"Epoch: {epoch+1}/{epochs}, Total Loss: {float(total_loss):.4f}, LR: {float(optimizer.learning_rate):.6f}"
     )
     if (epoch + 1) % 5 == 0:
         # Save weights from the combined model
@@ -241,7 +236,7 @@ for epoch in range(epochs):
                 plt.imshow(generated_images[_i - 1], cmap="gray", vmin=0, vmax=1)
                 plt.axis("off")
             plt.tight_layout()
-            plt.savefig(f"{folder_path}/vae_image_grid.png")
+            plt.savefig(f"{folder_path}/vae_image_grid_{epoch+1}.png")
             plt.close("all")
         except Exception as e:
             print("Error saving images", e)
@@ -295,6 +290,9 @@ def plot_label_clusters(encoder, data, labels):
 
 (x_train, y_train), _ = fashion_mnist.load_data()
 x_train = np.expand_dims(x_train, -1).astype("float32") / 255
-x_train = mx.array(x_train)
+num_plot_samples = 5000
+indices = np.random.choice(range(len(x_train)), num_plot_samples, replace=False)
+x_plot = mx.array(x_train[indices])
+y_plot = y_train[indices]
 
-plot_label_clusters(vae_model.encoder, x_train, y_train)
+plot_label_clusters(vae_model.encoder, x_plot, y_plot)
