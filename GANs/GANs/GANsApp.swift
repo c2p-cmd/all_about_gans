@@ -11,9 +11,8 @@ import SwiftUI
 struct GANsApp: App {
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                ContentView()
-            }
+            ContentView()
+                .preferredColorScheme(.dark)
         }
     }
 }
