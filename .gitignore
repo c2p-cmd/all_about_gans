@@ -1,3 +1,9 @@
 data/
 models*/
+output_gan*/
+__pycache__/
 .DS_Store
+quick_draw/vae/model_weights*/
+quick_draw/vae/runs/
+quick_draw/vae/quick_draw_data/
+cifar_10/dcgan/torch/weights/
