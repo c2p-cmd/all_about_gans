@@ -5,6 +5,7 @@
 //  Created by Sharan Thakur on 22/11/25.
 //
 
+import MLX
 import MLXNN
 import Observation
 import SwiftUI
@@ -29,6 +30,7 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
     case mnistdcgan
     case cifar10vae
     case cifar10dcgan
+    case quickDraw8cvae
     
     var description: String {
         switch self {
@@ -38,6 +40,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             "CIFAR-10 VAE"
         case .cifar10dcgan:
             "CIFAR-10 DCGAN"
+        case .quickDraw8cvae:
+            "Quick Draw 8 CVAE"
         }
     }
     
@@ -49,6 +53,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             try VAE_CIFAR10.loadPretrained()
         case .cifar10dcgan:
             try DCGANCIFAR10.loadPretrained()
+        case .quickDraw8cvae:
+            try VAE_QuickDraw8.loadPretrained()
         }
     }
     
@@ -60,6 +66,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             VAE_CIFAR10.latentDim
         case .cifar10dcgan:
             DCGANCIFAR10.latentDim
+        case .quickDraw8cvae:
+            VAE_QuickDraw8.latentDim
         }
     }
     
@@ -72,6 +80,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             Label("CIFAR-10 VAE", systemImage: "photo.on.rectangle.angled")
         case .cifar10dcgan:
             Label("CIFAR-10 DCGAN", systemImage: "photo.on.rectangle")
+        case .quickDraw8cvae:
+            Label("Quick Draw 8 CVAE", systemImage: "pencil.and.outline")
         }
     }
     
@@ -83,6 +93,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             Color.VAECIFAR_10
         case .cifar10dcgan:
             Color.DCGANCIFAR_10
+        case .quickDraw8cvae:
+            Color.vaeQuickDraw8
         }
     }
 }
@@ -122,6 +134,7 @@ final class ViewModel {
                 await MainActor.run {
                     setError(AppError(title: "Model Load Error", "Failed to load model: \(error.localizedDescription)"))
                 }
+                print(error)
             }
             await MainActor.run {
                 self.isBusy = false
@@ -129,7 +142,7 @@ final class ViewModel {
         }
     }
     
-    func generateImages(count imageCount: Int) {
+    func generateImages(count imageCount: Int, label: VAE_QuickDraw8.Label? = nil) {
         Task.init {
             guard let modelInstance, let currentModelType else {
                 await MainActor.run {
@@ -162,7 +175,15 @@ final class ViewModel {
                 await MainActor.run {
                     self.generatedImages = output.compactMap { $0.rgbToNativeImage(denormalize: denormalizeTanH(_:)) }
                 }
-            } else {
+            } else if let vaeQuickDraw8 = modelInstance as? VAE_QuickDraw8.CVAE {
+                var labels = arange(VAE_QuickDraw8.Label.allCases.count)
+                labels = repeated(labels, count: imageCount)
+                let output = vaeQuickDraw8.decoder(latents, labels: labels)
+                await MainActor.run {
+                    self.generatedImages = output.compactMap { $0.grayscaleToNativeImage(denormalize: denormalizeSigmoid(_:)) }
+                }
+            }
+            else {
                 print("Model instance is not a UnaryLayer nor VAE")
             }
             if self.generatedImages.isEmpty {

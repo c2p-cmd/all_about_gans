@@ -88,7 +88,11 @@ struct GenerationView: View {
         }
         .navigationTitle(title)
         .task {
+#if targetEnvironment(simulator)
+            print("Simulator")
+#else
             vm.loadModel()
+#endif
 //            for i in 0...15 {
 //                vm.generatedImages.append(UIImage(named: "reconstructed_\(i)")!)
 //            }
