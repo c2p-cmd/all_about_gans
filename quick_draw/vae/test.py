@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 model = CVAE(latent_dim=32, max_filters=64, num_classes=len(categories))
-model.load_weights("./model_weights_latent_32_filters_64/cvae_final.safetensors")
+model.load_weights("./model_weights_latent_32_filters_64_ft2/cvae_epoch_120.safetensors")
+model.eval()
 
 labels = mx.arange(len(categories))
 

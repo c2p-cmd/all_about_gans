@@ -141,7 +141,7 @@ class CVAE(nn.Module):
         return mu + std * epsilon
 
     def sample(self, num_samples, labels):
-        """Generate samples from the prior"""
+        """Generate samples from the model"""
         z = mx.random.normal((num_samples, self.latent_dim))
         return self.decoder(z, labels)
 
@@ -354,6 +354,12 @@ def main():
         help="Directory to save models and samples",
     )
     parser.add_argument(
+        "--load_dir",
+        type=str,
+        default=None,
+        help="Directory to load model weights from",
+    )
+    parser.add_argument(
         "--log_dir", type=str, default="./runs", help="TensorBoard log directory"
     )
     parser.add_argument(
@@ -421,6 +427,10 @@ def main():
         max_filters=args.max_filters,
         num_classes=len(categories),
     )
+    if args.load_dir is not None:
+        weights_path = Path(args.load_dir)
+        model.load_weights(str(weights_path))
+        print(f"Loaded model weights from {weights_path}\n")
 
     # Count parameters
     from mlx.utils import tree_flatten
