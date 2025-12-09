@@ -77,6 +77,7 @@ struct GenerationView: View {
                 }
                 .labelStyle(.titleAndIcon)
                 .buttonStyle(.borderedProminent)
+                .buttonSizeIfAvailable(flexible: true)
                 .symbolEffect(.bounce.up.byLayer, options: .repeat(2))
             }
             

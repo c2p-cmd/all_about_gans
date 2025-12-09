@@ -30,6 +30,7 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
     case mnistdcgan
     case cifar10vae
     case cifar10dcgan
+    case fashionmnistvae
     case quickDraw8cvae
     
     var description: String {
@@ -42,6 +43,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             "CIFAR-10 DCGAN"
         case .quickDraw8cvae:
             "Quick Draw 8 CVAE"
+        case .fashionmnistvae:
+            "Fashion MNIST VAE"
         }
     }
     
@@ -55,6 +58,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             try DCGANCIFAR10.loadPretrained()
         case .quickDraw8cvae:
             try VAE_QuickDraw8.loadPretrained()
+        case .fashionmnistvae:
+            try VAE_Fashion_MNIST.loadPretrained()
         }
     }
     
@@ -68,6 +73,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             DCGANCIFAR10.latentDim
         case .quickDraw8cvae:
             VAE_QuickDraw8.latentDim
+        case .fashionmnistvae:
+            VAE_Fashion_MNIST.latentDim
         }
     }
     
@@ -82,6 +89,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             Label("CIFAR-10 DCGAN", systemImage: "photo.on.rectangle")
         case .quickDraw8cvae:
             Label("Quick Draw 8 CVAE", systemImage: "pencil.and.outline")
+        case .fashionmnistvae:
+            Label("Fashion MNIST VAE", systemImage: "shoe.fill")
         }
     }
     
@@ -95,6 +104,8 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
             Color.DCGANCIFAR_10
         case .quickDraw8cvae:
             Color.vaeQuickDraw8
+        case .fashionmnistvae:
+            Color.vaeFashion
         }
     }
 }
@@ -175,15 +186,18 @@ final class ViewModel {
                 await MainActor.run {
                     self.generatedImages = output.compactMap { $0.rgbToNativeImage(denormalize: denormalizeTanH(_:)) }
                 }
-            } else if let vaeQuickDraw8 = modelInstance as? VAE_QuickDraw8.CVAE {
-                var labels = arange(VAE_QuickDraw8.Label.allCases.count)
-                labels = repeated(labels, count: imageCount)
-                let output = vaeQuickDraw8.decoder(latents, labels: labels)
+            } else if let vaeFashion = modelInstance as? VAE_Fashion_MNIST.Decoder {
+                let output = vaeFashion(latents)
                 await MainActor.run {
                     self.generatedImages = output.compactMap { $0.grayscaleToNativeImage(denormalize: denormalizeSigmoid(_:)) }
                 }
-            }
-            else {
+            } else if let vaeQuickDraw8 = modelInstance as? VAE_QuickDraw8.CVAE {
+                let labels = MLXRandom.randInt(low: 0, high: VAE_QuickDraw8.Label.allCases.count, [imageCount])
+                let output = vaeQuickDraw8.sample(num_samples: imageCount, labels: labels)
+                await MainActor.run {
+                    self.generatedImages = output.compactMap { $0.grayscaleToNativeImage(denormalize: denormalizeSigmoid(_:)) }
+                }
+            } else {
                 print("Model instance is not a UnaryLayer nor VAE")
             }
             if self.generatedImages.isEmpty {

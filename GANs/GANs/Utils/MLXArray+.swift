@@ -65,17 +65,16 @@ extension MLXArray {
         // We expect a single image here, effectively 3 dimensions.
         // If this is 4D (Batch, C, H, W), the user needs to slice it first.
         guard self.ndim == 3 else {
-            print("Error: rgbToNativeImage expects a 3D array (C, H, W) or (H, W, C). Received \(self.ndim)D.")
+            print("Error: rgbToNativeImage expects a 3D array (H, W, C). Received \(self.ndim)D.")
             return nil
         }
         
-        // 2. Handle Layout: Convert (C, H, W) -> (H, W, C)
         // If the first dimension is 3 (RGB), it's likely Channel-First.
         // We need Channel-Last for CGImage.
         var imageTensor = self
-        if imageTensor.dim(0) == 3 {
-            imageTensor = imageTensor.transposed(axes: [1, 2, 0]) // Permute dimensions
-        }
+//        if imageTensor.dim(0) == 3 {
+//            imageTensor = imageTensor.transposed(axes: [1, 2, 0]) // Permute dimensions
+//        }
         
         // 3. Denormalize
         var normalized = denormalize(imageTensor)
