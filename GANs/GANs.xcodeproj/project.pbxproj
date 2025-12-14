@@ -17,9 +17,22 @@
 		18671E232EC64F1700B542F7 /* GANs.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GANs.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1845BB742EEEDACF0084D249 /* Exceptions for "GANs" folder in "GANs" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 18671E222EC64F1700B542F7 /* GANs */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		18671E252EC64F1700B542F7 /* GANs */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1845BB742EEEDACF0084D249 /* Exceptions for "GANs" folder in "GANs" target */,
+			);
 			path = GANs;
 			sourceTree = "<group>";
 		};
@@ -272,6 +285,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GANs/Info.plist;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Required to save photos to album";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -317,6 +332,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GANs/Info.plist;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Required to save photos to album";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

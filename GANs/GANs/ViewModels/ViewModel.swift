@@ -48,6 +48,21 @@ enum DomainModelTypes: Int, CustomStringConvertible, CaseIterable {
         }
     }
     
+    var infoText: LocalizedStringKey {
+        switch self {
+        case .mnistdcgan:
+            "**LeCun, Y. et al. (1998)** Generates realistic handwritten digits (0-9) using a DCGAN architecture. This model excels at creating sharp 28x28 pixel images of numbers."
+        case .cifar10vae:
+            "**Krizhevsky, A. (2009)** Generates low-resolution (32x32) color images of common objects (like cars, birds, and frogs) using a VAE. It offers smooth transitions between different object classes."
+        case .cifar10dcgan:
+            "**Krizhevsky, A. (2009)** Generates 32x32 pixel color images from the CIFAR-10 dataset using a DCGAN. It often produces more visually distinct, though sometimes less abstract, images than the VAE."
+        case .quickDraw8cvae:
+            "**Google (2017)** Generates simple, black and white 28x28 sketches from 8 categories (like cat, basketball, mug) using a Conditional VAE (CVAE). You can select the class for generation. Here the model creates simple, cartoon-like sketches from Google's challenge."
+        case .fashionmnistvae:
+            "**Xiao, H. et al. (2017)** Generates 28x28 grayscale images of various clothing items (like shirts, bags, and boots) using a VAE. It produces smooth and varied images of apparel."
+        }
+    }
+    
     func loadModel() throws -> Module {
         switch self {
         case .mnistdcgan:

@@ -16,6 +16,27 @@ struct GenerationView: View {
     var body: some View {
         ScrollView {
             VStack {
+                if let currentModelType = vm.currentModelType {
+                    VStack(spacing: 20) {
+                        Text(currentModelType.description)
+                            .font(.headline)
+                            .fontDesign(.rounded)
+                        
+                        Text(currentModelType.infoText)
+                            .font(.subheadline)
+                            .fontDesign(.rounded)
+                    }
+                    .padding([.vertical, .horizontal], 20)
+                    .background(
+                        Color.card,
+                        in: RoundedRectangle(cornerRadius: 36, style: .continuous)
+                    )
+                    .padding(.horizontal, 10)
+                }
+                
+                Divider()
+                    .padding(.vertical, 10)
+                
                 SliderView(vm: $vm)
                 
                 Divider()
@@ -25,19 +46,17 @@ struct GenerationView: View {
                     BusyView()
                 } else {
                     if vm.generatedImages.isEmpty {
-                        ContentUnavailableView(
-                            "Images not generated",
-                            systemImage: "photo",
-                            description: Text("Tap the button below to generate images using the selected model.")
-                        )
-                        .background(
-                            Color.card,
-                            in: RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        )
+                        Text("Tap the button below to generate images using the selected model.")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                            .fontDesign(.rounded)
+                            .padding(.horizontal)
                     } else {
                         Text("Generated Images")
-                            .font(.subheadline.bold())
+                            .font(.headline)
+                            .fontWeight(.regular)
                             .fontDesign(.rounded)
+                            .foregroundStyle(.secondary)
                         
                         LazyVGrid(columns: columns) {
                             ForEach(0..<vm.generatedImages.count, id: \.self) { idx in
@@ -54,33 +73,14 @@ struct GenerationView: View {
         .scrollContentBackground(.automatic)
         .scrollBounceBehavior(.basedOnSize)
         .toolbar {
-            #if os(macOS)
+#if os(macOS)
             let placement: ToolbarItemPlacement = .automatic
-            #else
-            let placement: ToolbarItemPlacement = .bottomBar
-            #endif
-            ToolbarItem(placement: placement) {
-                Button("Generate Images", systemImage: "sparkles") {
-#if targetEnvironment(simulator)
-                    Task {
-                        vm.isBusy = true
-                        try? await Task.sleep(nanoseconds: 1_000_000_000)
-                        vm.generatedImages = []
-                        for i in 0...15 {
-                            vm.generatedImages.append(UIImage(named: "reconstructed_\(i)")!)
-                        }
-                        vm.isBusy = false
-                    }
 #else
-                    vm.generateImages(count: Int(vm.imagesToGenerate))
+            let placement: ToolbarItemPlacement = .bottomBar
 #endif
-                }
-                .labelStyle(.titleAndIcon)
-                .buttonStyle(.borderedProminent)
-                .buttonSizeIfAvailable(flexible: true)
-                .symbolEffect(.bounce.up.byLayer, options: .repeat(2))
+            ToolbarItem(placement: placement) {
+                generateButton
             }
-            
         }
         .alert(isPresented: $vm.showError, error: vm.error) { err in
             
@@ -101,6 +101,7 @@ struct GenerationView: View {
         .onDisappear {
             vm.modelInstance = nil
             vm.generatedImages = []
+            vm.imagesToGenerate = 2
         }
     }
     
@@ -118,6 +119,36 @@ struct GenerationView: View {
                 GridItem(.flexible(minimum: 75, maximum: 180))
             ]
         }
+    }
+    
+    var generateButton: some View {
+        Button {
+#if targetEnvironment(simulator)
+            Task {
+                vm.isBusy = true
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                vm.generatedImages = []
+                for i in 0...15 {
+                    vm.generatedImages.append(UIImage(named: "reconstructed_\(i)")!)
+                }
+                vm.isBusy = false
+            }
+#else
+            vm.generateImages(count: Int(vm.imagesToGenerate))
+#endif
+        } label: {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: "sparkles.2")
+                
+                Text("Generate Images")
+            }
+            .font(.subheadline)
+            .padding(.horizontal, 10)
+        }
+        .labelStyle(.titleAndIcon)
+        .buttonStyle(.borderedProminent)
+        .buttonSizeIfAvailable(flexible: true)
+        .symbolEffect(.bounce.up.byLayer, options: .repeat(2))
     }
 }
 
@@ -143,8 +174,8 @@ struct SliderView: View {
     
     var body: some View {
         VStack(alignment: .center) {
-            Text("Images To Generate")
-                .font(.subheadline)
+            Text("Select the number of images to generate")
+                .font(.headline)
                 .fontWeight(.semibold)
                 .fontDesign(.rounded)
             
@@ -153,7 +184,7 @@ struct SliderView: View {
                 in: 2...64,
                 step: 1
             ) {
-                Text("Images To Generate")
+                EmptyView()
             } minimumValueLabel: {
                 Image(systemName: "minus")
                     .onTapGesture {
@@ -187,16 +218,60 @@ struct SliderView: View {
 struct ImageView: View {
     let image: NativeImage
     
+    @State private var isPresented: Bool = false
+    @State private var selection = PresentationDetent.large
+    
     var body: some View {
         imageView
             .scaledToFit()
             .cornerRadius(12)
             .padding(.bottom)
-            .contextMenu {
-                ShareLink(
-                    item: imageView,
-                    preview: SharePreview("Generated Image", icon: "bubbles.and.sparkles")
-                )
+            .onTapGesture {
+                isPresented.toggle()
+            }
+            .sheet(isPresented: $isPresented) {
+                NavigationStack {
+                    VStack {
+                        
+                        Spacer()
+                        
+                        imageView
+                            .scaledToFit()
+                            .frame(height: 300)
+                            .cornerRadius(12)
+                            .padding(.bottom, 30)
+                        
+                        Spacer()
+                        
+                        HStack {
+                            Spacer()
+                            
+                            ShareLink(
+                                item: imageView,
+                                preview: SharePreview("Generated Image", icon: "bubbles.and.sparkles")
+                            ) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                            
+                            Spacer()
+                        }
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .navigation) {
+                            Button {
+                                isPresented = false
+                            } label: {
+                                Label("Close", systemImage: "chevron.left")
+                                    .labelStyle(.iconOnly)
+                            }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.circle)
+                        }
+                    }
+                }
+                .presentationDetents([.large, .medium], selection: $selection)
+                .presentationSizing(.automatic)
+                .presentationDragIndicator(.visible)
             }
     }
     
@@ -220,5 +295,11 @@ struct ImageView: View {
             title: DomainModelTypes.mnistdcgan.description
         )
         .preferredColorScheme(.dark)
+        .onAppear {
+            vm.currentModelType = .mnistdcgan
+        }
     }
+#if os(macOS)
+    .frame(width: 1280 / 1.5, height: 720 / 1.5)
+#endif
 }

@@ -38,7 +38,7 @@ struct ContentView: View {
                 .font(.headline)
                 .fontDesign(.rounded)
             
-            Text("Generative Adversarial Networks (GANs) are a class of machine learning frameworks designed to generate new, synthetic data that closely resembles a given training dataset.")
+            Text("Generative Adversarial Networks (GANs) **(Goodfellow et al., 2014)** are a class of machine learning frameworks designed to generate new, synthetic data that closely resembles a given training dataset.")
                 .font(.subheadline)
                 .fontDesign(.rounded)
             
@@ -46,7 +46,7 @@ struct ContentView: View {
                 .font(.headline)
                 .fontDesign(.rounded)
             
-            Text("Variational Autoencoders (VAEs) are a type of generative model that learns to encode input data into a latent space and then decode it back to reconstruct the original data, allowing for the generation of new, similar data points.")
+            Text("Variational Autoencoders (VAEs) **(Kingma and Welling, 2014)** are a type of generative model that learns to encode input data into a latent space and then decode it back to reconstruct the original data, allowing for the generation of new, similar data points.")
                 .font(.subheadline)
                 .fontDesign(.rounded)
         }
@@ -61,7 +61,7 @@ struct ContentView: View {
     
     @ViewBuilder
     var buttons: some View {
-        VStack(alignment: .center, spacing: 30) {
+        VStack(alignment: .center, spacing: 10) {
             Text("Select a model to generate images:")
                 .font(.headline)
                 .fontDesign(.rounded)
