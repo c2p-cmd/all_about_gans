@@ -113,6 +113,12 @@ Model weights and generated samples are preserved in the [models_weights/](model
 - Enhance mobile app
 - Compare computational efficiency across architectures
 
+## YouTube Link
+
+<https://youtu.be/-rIP5dT_nKY?si=e96zov3vq2pSyRjO>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/-rIP5dT_nKY?si=oRBnrZI5IaVC5vtO" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 ---
 
 **Course**: M608 Business Project in Computer Science  
